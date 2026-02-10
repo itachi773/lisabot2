@@ -1,29 +1,32 @@
-let { Presence, GroupSettingChange } = require('@adiwajshing/baileys')
-let handler  = async (m, { conn, args, usedPrefix, command }) => {
-	let isClose = { // Switch Case Like :v
-		'open': false,
-		'close': true,
-	}[(args[0] || '')]
-	await conn.updatePresence(m.chat, Presence.composing)
-	if (isClose === undefined)
-		throw `
-*Format salah! Contoh :*
+module.exports = async (conn, data) => {
+  const { m, from, args, command, isAdmin, isBotAdmin } = data
 
-  *○ ${usedPrefix + command} close*
-  *○ ${usedPrefix + command} open*
-`.trim()
-	await conn.groupSettingChange(m.chat, GroupSettingChange.messageSend, isClose)
+  if (!isAdmin) {
+    return conn.sendMessage(from, { text: '❌ Solo admins pueden usar este comando' })
+  }
+
+  if (!isBotAdmin) {
+    return conn.sendMessage(from, { text: '❌ Necesito ser admin para hacer esto' })
+  }
+
+  if (!args[0]) {
+    return conn.sendMessage(from, {
+      text: `❌ Uso correcto:\n\n• .${command} open\n• .${command} close`
+    })
+  }
+
+  if (args[0] === 'open') {
+    await conn.groupSettingUpdate(from, 'not_announcement')
+    return conn.sendMessage(from, { text: '✅ Grupo abierto, todos pueden escribir' })
+  }
+
+  if (args[0] === 'close') {
+    await conn.groupSettingUpdate(from, 'announcement')
+    return conn.sendMessage(from, { text: '🔒 Grupo cerrado, solo admins escriben' })
+  }
+
+  return conn.sendMessage(from, { text: '❌ Opción inválida: usa open o close' })
 }
-handler.help = ['group *open / close*']
-handler.tags = ['group']
-handler.command = /^(group)$/i
-handler.owner = false
-handler.mods = false
-handler.premium = false
-handler.group = false
-handler.private = false
-handler.admin = true
-handler.botAdmin = true
-handler.fail = null
-handler.exp = 0
-module.exports = handler
+
+module.exports.command = ['group']
+
